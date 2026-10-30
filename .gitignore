@@ -1,0 +1,24 @@
+# Build output
+build/
+
+# Databases and experiment output produced by running the tools
+bench_db/
+example_db/
+*.sst
+*.csv
+
+# Editor and tooling droppings
+.vscode/
+.idea/
+compile_commands.json
+*.o
+*.d
+*.a
+core
+vgcore.*
+perf.data*
+.cache/
+.clangd
+*.swp
+*~
+.DS_Store
