@@ -8,7 +8,9 @@ example_db/
 *.csv
 
 # Editor and tooling droppings
-.vscode/
+.vscode/*
+!.vscode/c_cpp_properties.json
+!.vscode/settings.json
 .idea/
 compile_commands.json
 *.o
