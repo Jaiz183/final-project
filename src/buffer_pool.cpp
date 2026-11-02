@@ -6,13 +6,13 @@ namespace kvstore {
 
 PageGuard::~PageGuard() { Reset(); }
 
-PageGuard::PageGuard(PageGuard&& other) noexcept
+PageGuard::PageGuard(PageGuard &&other) noexcept
     : pool_(other.pool_), frame_(other.frame_), data_(other.data_) {
   other.pool_ = nullptr;
   other.data_ = nullptr;
 }
 
-PageGuard& PageGuard::operator=(PageGuard&& other) noexcept {
+PageGuard &PageGuard::operator=(PageGuard &&other) noexcept {
   if (this != &other) {
     Reset();
     pool_ = other.pool_;
@@ -36,14 +36,16 @@ namespace {
 
 std::size_t RoundUpPow2(std::size_t n) {
   std::size_t p = 1;
-  while (p < n) p <<= 1;
+  while (p < n)
+    p <<= 1;
   return p;
 }
 
-}  // namespace
+} // namespace
 
 BufferPool::BufferPool(std::size_t capacity_pages, std::size_t hash_buckets) {
-  if (capacity_pages == 0) throw Error("buffer pool capacity must be positive");
+  if (capacity_pages == 0)
+    throw Error("buffer pool capacity must be positive");
   frames_.resize(capacity_pages);
   pages_ = AlignedBuffer(capacity_pages);
 
@@ -53,7 +55,8 @@ BufferPool::BufferPool(std::size_t capacity_pages, std::size_t hash_buckets) {
   bucket_mask_ = buckets - 1;
 
   free_frames_.reserve(capacity_pages);
-  for (std::size_t i = capacity_pages; i > 0; --i) free_frames_.push_back(i - 1);
+  for (std::size_t i = capacity_pages; i > 0; --i)
+    free_frames_.push_back(i - 1);
 }
 
 std::size_t BufferPool::BucketOf(std::uint32_t file_id,
@@ -78,14 +81,16 @@ std::size_t BufferPool::Lookup(std::uint32_t file_id,
 }
 
 void BufferPool::HashInsert(std::size_t frame) {
-  const std::size_t b = BucketOf(frames_[frame].file_id, frames_[frame].page_index);
+  const std::size_t b =
+      BucketOf(frames_[frame].file_id, frames_[frame].page_index);
   frames_[frame].hash_next = buckets_[b];
   buckets_[b] = frame;
 }
 
 void BufferPool::HashRemove(std::size_t frame) {
-  const std::size_t b = BucketOf(frames_[frame].file_id, frames_[frame].page_index);
-  std::size_t* link = &buckets_[b];
+  const std::size_t b =
+      BucketOf(frames_[frame].file_id, frames_[frame].page_index);
+  std::size_t *link = &buckets_[b];
   while (*link != kInvalid) {
     if (*link == frame) {
       *link = frames_[frame].hash_next;
@@ -100,9 +105,11 @@ void BufferPool::HashRemove(std::size_t frame) {
 void BufferPool::LruPushFront(std::size_t frame) {
   frames_[frame].lru_prev = kInvalid;
   frames_[frame].lru_next = lru_head_;
-  if (lru_head_ != kInvalid) frames_[lru_head_].lru_prev = frame;
+  if (lru_head_ != kInvalid)
+    frames_[lru_head_].lru_prev = frame;
   lru_head_ = frame;
-  if (lru_tail_ == kInvalid) lru_tail_ = frame;
+  if (lru_tail_ == kInvalid)
+    lru_tail_ = frame;
 }
 
 void BufferPool::LruRemove(std::size_t frame) {
@@ -128,8 +135,8 @@ std::size_t BufferPool::AcquireFrame() {
     free_frames_.pop_back();
     return f;
   }
-  // Walk from the least recently used end until an unpinned page is found.  Pages
-  // are only pinned while a PageGuard is alive, so in the single-threaded
+  // Walk from the least recently used end until an unpinned page is found.
+  // Pages are only pinned while a PageGuard is alive, so in the single-threaded
   // baseline the scan stops almost immediately.
   for (std::size_t f = lru_tail_; f != kInvalid; f = frames_[f].lru_prev) {
     if (frames_[f].pin_count == 0) {
@@ -148,11 +155,11 @@ std::size_t BufferPool::AcquireFrame() {
 }
 
 PageGuard BufferPool::Fetch(std::uint32_t file_id, std::uint64_t page_index,
-                            File& file) {
+                            File &file) {
   std::size_t frame = Lookup(file_id, page_index);
   if (frame != kInvalid) {
     ++stats_.hits;
-    LruRemove(frame);        // refresh the recency order
+    LruRemove(frame); // refresh the recency order
     LruPushFront(frame);
     ++frames_[frame].pin_count;
     return PageGuard(this, frame, pages_.page(frame));
@@ -176,13 +183,15 @@ PageGuard BufferPool::Fetch(std::uint32_t file_id, std::uint64_t page_index,
 }
 
 void BufferPool::Unpin(std::size_t frame) {
-  if (frames_[frame].pin_count == 0) throw Error("unpinning an unpinned frame");
+  if (frames_[frame].pin_count == 0)
+    throw Error("unpinning an unpinned frame");
   --frames_[frame].pin_count;
 }
 
 void BufferPool::EvictFile(std::uint32_t file_id) {
   for (std::size_t f = 0; f < frames_.size(); ++f) {
-    if (!frames_[f].occupied || frames_[f].file_id != file_id) continue;
+    if (!frames_[f].occupied || frames_[f].file_id != file_id)
+      continue;
     if (frames_[f].pin_count != 0) {
       throw Error("cannot evict pages of a file that is still in use");
     }
@@ -194,4 +203,4 @@ void BufferPool::EvictFile(std::uint32_t file_id) {
   }
 }
 
-}  // namespace kvstore
+} // namespace kvstore
